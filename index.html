@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MemPalace 记忆宫殿：用空间与图像串联知识点。">
+  <title>MemPalace · 记忆宫殿</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="返回 MemPalace 首页">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span>
+          <strong>MemPalace</strong>
+          <small>记忆宫殿</small>
+        </span>
+      </a>
+      <div class="topbar-meta">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="sync-status">本地知识库</span>
+      </div>
+    </header>
+
+    <main id="app" tabindex="-1">
+      <section id="loading-state" class="state-panel" aria-live="polite">
+        <span class="loader" aria-hidden="true"></span>
+        <p>正在点亮宫殿地图...</p>
+      </section>
+
+      <section id="error-state" class="state-panel is-hidden" aria-live="assertive">
+        <span class="state-icon" aria-hidden="true">!</span>
+        <h1>知识库暂时无法打开</h1>
+        <p id="error-message">请检查 CSV 文件格式后重试。</p>
+        <button id="retry-button" class="button button-primary" type="button">重新加载</button>
+      </section>
+
+      <section id="hall-view" class="view is-hidden" aria-labelledby="hall-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="eyebrow-line"></span> YOUR MEMORY PALACE</p>
+          <h1 id="hall-title">走进你的<br><em>知识宫殿</em></h1>
+          <p class="hero-description">把抽象的知识放进一座可以漫游的城堡。每一扇门，都是一个值得记住的连接。</p>
+        </div>
+        <div class="hall-intro">
+          <div>
+            <span class="section-kicker">COURSE ARCHIVE</span>
+            <h2>选择一座宫殿</h2>
+          </div>
+          <span id="course-count" class="count-label">0 座课程</span>
+        </div>
+        <div id="course-grid" class="course-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="room-view" class="view is-hidden" aria-labelledby="room-title">
+        <nav class="breadcrumb" id="breadcrumb" aria-label="页面路径"></nav>
+        <div class="room-heading">
+          <div>
+            <p class="eyebrow"><span class="eyebrow-line"></span> EXPLORATION ROOM</p>
+            <h1 id="room-title">记忆房间</h1>
+          </div>
+          <button id="back-button" class="button button-quiet" type="button">
+            <span aria-hidden="true">←</span> 返回大厅
+          </button>
+        </div>
+        <div class="room-stage">
+          <div class="stage-lights" aria-hidden="true"></div>
+          <div class="stage-copy">
+            <span class="stage-label">CURRENT CHAMBER</span>
+            <p id="room-caption">探索房间里的每一个记忆锚点</p>
+          </div>
+          <div id="room-anchor" class="room-anchor"></div>
+          <div id="node-list" class="node-list" aria-label="房间中的记忆节点"></div>
+          <div id="empty-room" class="empty-room is-hidden">
+            <span class="empty-icon" aria-hidden="true">✦</span>
+            <p>这里暂时没有下一扇门。</p>
+            <span>回到大厅，继续探索另一座宫殿。</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside id="detail-drawer" class="detail-drawer" aria-labelledby="detail-title" aria-hidden="true">
+      <button id="close-detail" class="icon-button" type="button" aria-label="关闭知识点详情">×</button>
+      <div class="detail-accent" aria-hidden="true"></div>
+      <span class="section-kicker">MEMORY NOTE</span>
+      <h2 id="detail-title">知识点</h2>
+      <p id="detail-text" class="detail-text"></p>
+      <div class="detail-divider"></div>
+      <dl class="detail-meta">
+        <div><dt>记忆编号</dt><dd id="detail-id">—</dd></div>
+        <div><dt>图像状态</dt><dd id="detail-image-status">待生成</dd></div>
+      </dl>
+      <p id="detail-prompt" class="detail-prompt"></p>
+    </aside>
+    <div id="drawer-backdrop" class="drawer-backdrop is-hidden"></div>
+  </div>
+  <script src="app.js" defer></script>
+</body>
+</html>
