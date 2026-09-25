@@ -1,5 +1,5 @@
-﻿图像提示词,图片位置,图片层级,图片编号,上层图片,知识点
-英国古堡，大门刻上“英语”文字,gallery/1.png,1,1,无,
-"老旧扶手椅上坐着一位官僚，胸前贴着姓名“DYH""",gallery/1.1.png,2,1.1,1,Clumsy bureaucracy  institutionalized by constitution causes systemic dysfunction and leads the country into the mire.
-现代化豪宅大门，带大屏对话功能，密码锁键盘，铭牌写“科学工具”,gallery/2.png,1,2,无,
-无,gallery/2.1.png,2,2.1,2,
+﻿图像提示词,图片位置,图片层级,图片编号,上层图片,知识点,显示方式
+英国古堡大门,gallery/1.png,1,1,无,英语,固定
+"老旧扶手椅上坐着一位官僚，胸前贴着姓名“DYH""",gallery/1.1.png,2,1.1,1,Clumsy bureaucracy  institutionalized by constitution causes systemic dysfunction and leads the country into the mire.,悬浮
+现代化豪宅大门，带大屏对话功能，密码锁键盘，铭牌写“科学工具”,gallery/2.png,1,2,无,科学工具,固定
+无,gallery/2.1.png,2,2.1,2,Focus on the Graphic,悬浮
