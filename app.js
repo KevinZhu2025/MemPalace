@@ -1,5 +1,5 @@
 const DATA_URL = "知识点文档.csv";
-const FIELD_NAMES = ["图像提示词", "图片位置", "图片层级", "图片编号", "上层图片", "知识点"];
+const FIELD_NAMES = ["图像提示词", "图片位置", "图片层级", "图片编号", "上层图片", "知识点", "显示方式"];
 
 const state = {
   nodes: new Map(),
@@ -33,8 +33,7 @@ const elements = {
   detailTitle: document.querySelector("#detail-title"),
   detailText: document.querySelector("#detail-text"),
   detailId: document.querySelector("#detail-id"),
-  detailImageStatus: document.querySelector("#detail-image-status"),
-  detailPrompt: document.querySelector("#detail-prompt")
+  detailImageStatus: document.querySelector("#detail-image-status")
 };
 
 function parseCsv(text) {
@@ -83,7 +82,7 @@ function parseNodes(csvText) {
   if (rows.length < 2) throw new Error("CSV 中没有可展示的知识点记录。");
 
   const headers = rows[0].map(normalize);
-  const missingHeaders = FIELD_NAMES.filter((name) => !headers.includes(name));
+  const missingHeaders = FIELD_NAMES.filter((name) => name !== "显示方式" && !headers.includes(name));
   if (missingHeaders.length > 0) throw new Error(`CSV 缺少字段：${missingHeaders.join("、")}`);
 
   const indexOf = (name) => headers.indexOf(name);
@@ -97,6 +96,7 @@ function parseNodes(csvText) {
     const parentId = parentValue === "无" ? null : parentValue;
     const levelText = normalize(row[indexOf("图片层级")] || "");
     const level = Number(levelText);
+    const displayMode = normalize(row[indexOf("显示方式")] || "") || "固定";
     if (!id) errors.push(`第 ${line} 行缺少图片编号。`);
     if (!Number.isInteger(level) || level < 1) errors.push(`第 ${line} 行的图片层级无效。`);
     if (nodes.has(id)) errors.push(`第 ${line} 行的图片编号 ${id} 重复。`);
@@ -107,6 +107,7 @@ function parseNodes(csvText) {
       prompt: normalize(row[indexOf("图像提示词")] || ""),
       imageUrl: normalize(row[indexOf("图片位置")] || ""),
       knowledgeText: normalize(row[indexOf("知识点")] || ""),
+      displayMode,
       imageState: normalize(row[indexOf("图片位置")] || "") ? "ready" : "pending"
     });
   });
@@ -144,16 +145,20 @@ function parseNodes(csvText) {
 
 function shortTitle(node) {
   if (node.id === "1") return "英语 · 英国古堡";
-  const source = node.knowledgeText || node.prompt || `记忆节点 ${node.id}`;
+  const source = node.knowledgeText || `记忆节点 ${node.id}`;
   return source.length > 34 ? `${source.slice(0, 34)}…` : source;
 }
 
 function shortPreview(node) {
-  if (!node.knowledgeText) return node.imageState === "pending" ? "图像尚未生成 · 点击查看提示词" : "暂无文字知识点";
+  if (!node.knowledgeText) return node.imageState === "pending" ? "图像尚未生成" : "暂无文字知识点";
   return node.knowledgeText.length > 95 ? `${node.knowledgeText.slice(0, 95)}…` : node.knowledgeText;
 }
 
-function addNodeImage(container, node, className) {
+function getCaptionMode(node) {
+  return /(悬浮|hover|float)/i.test(node.displayMode || "") ? "hover" : "fixed";
+}
+
+function addNodeImage(container, node, className, captionClass = "image-caption") {
   if (!node.imageUrl) {
     container.classList.add("image-pending");
     return;
@@ -173,6 +178,13 @@ function addNodeImage(container, node, className) {
     container.append(status);
   });
   container.append(image);
+
+  if (node.knowledgeText) {
+    const caption = document.createElement("span");
+    caption.className = `${captionClass} caption-${getCaptionMode(node)}`;
+    caption.textContent = node.knowledgeText;
+    container.append(caption);
+  }
 }
 
 function setView(view) {
@@ -196,7 +208,7 @@ function renderHall() {
     const content = document.createElement("div");
     content.className = "card-content";
     content.innerHTML = `<span class="card-number">0${index + 1}</span><h2 class="card-title">${escapeHtml(shortTitle(node))}</h2><span class="card-meta">${state.children.get(node.id)?.length || 0} 个记忆锚点 <span class="card-arrow" aria-hidden="true">↗</span></span>`;
-    addNodeImage(card, node, "card-image");
+    addNodeImage(card, node, "card-image", "card-caption");
     button.append(content);
     card.append(button);
     elements.courseGrid.append(card);
@@ -208,10 +220,10 @@ function renderRoom(node) {
   state.currentId = node.id;
   const childNodes = state.children.get(node.id) || [];
   elements.roomTitle.textContent = shortTitle(node);
-  elements.roomCaption.textContent = node.knowledgeText || "探索房间里的每一个记忆锚点";
+  elements.roomCaption.textContent = "探索房间里的每一个记忆锚点";
   elements.roomAnchor.setAttribute("aria-label", node.imageState === "pending" ? "当前场景图片待生成" : "当前场景图片已就绪");
   elements.roomAnchor.replaceChildren();
-  addNodeImage(elements.roomAnchor, node, "room-image");
+  addNodeImage(elements.roomAnchor, node, "room-image", "room-caption");
   elements.nodeList.replaceChildren();
   elements.emptyRoom.classList.toggle("is-hidden", childNodes.length > 0);
 
@@ -222,7 +234,7 @@ function renderRoom(node) {
     const descendants = state.children.get(child.id)?.length || 0;
     card.setAttribute("aria-label", descendants ? `进入${shortTitle(child)}，有 ${descendants} 个子节点` : `查看${shortTitle(child)}知识点`);
     card.innerHTML = `<span class="node-index">${node.id}.${index + 1}</span><span class="node-state">${child.imageState === "pending" ? "待生成" : "已就绪"}</span><strong class="node-title">${escapeHtml(shortTitle(child))}</strong><span class="node-preview">${escapeHtml(shortPreview(child))}</span>`;
-    addNodeImage(card, child, "node-image");
+    addNodeImage(card, child, "node-image", "node-caption");
     card.addEventListener("click", () => descendants ? navigate(child.id) : openDetail(child));
     elements.nodeList.append(card);
   });
@@ -268,7 +280,6 @@ function openDetail(node) {
   elements.detailText.textContent = node.knowledgeText || "这个记忆锚点还没有添加知识点文字。";
   elements.detailId.textContent = node.id;
   elements.detailImageStatus.textContent = node.imageState === "pending" ? "待生成" : "已就绪";
-  elements.detailPrompt.textContent = node.prompt ? `图像提示词：${node.prompt}` : "暂无图像提示词";
   elements.drawer.classList.add("is-open");
   elements.drawer.setAttribute("aria-hidden", "false");
   elements.backdrop.classList.remove("is-hidden");

@@ -136,10 +136,31 @@ h1, h2 { font-family: "Cormorant Garamond", serif; font-weight: 600; line-height
 .room-image { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; transform: rotate(-45deg) scale(1.08); object-fit: cover; opacity: .72; }
 .room-anchor.image-pending::before { position: absolute; top: 50%; left: 50%; z-index: 2; transform: translate(-50%, -50%) rotate(-45deg); color: var(--gold); content: "待生成"; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
 .room-anchor.image-failed::before { position: absolute; top: 50%; left: 50%; z-index: 2; transform: translate(-50%, -50%) rotate(-45deg); color: #d78271; content: "加载失败"; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
-.node-list { position: absolute; right: 8%; bottom: 38px; left: 8%; z-index: 2; display: grid; grid-template-columns: repeat(auto-fit, minmax(205px, 1fr)); gap: 13px; }
-.node-card { position: relative; min-height: 144px; padding: 18px 92px 18px 18px; overflow: hidden; border: 1px solid rgba(231,215,180,.22); background: rgba(21, 28, 30, .85); text-align: left; box-shadow: 0 12px 28px rgba(0,0,0,.2); transition: transform .22s ease, background .22s ease, border-color .22s ease; }
+.image-caption {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 8%;
+  z-index: 2;
+  color: #fff;
+  font-weight: 600;
+  line-height: 1.15;
+  text-shadow: 0 3px 12px rgba(0,0,0,.8);
+  word-break: break-word;
+  pointer-events: none;
+}
+.card-caption { font-size: clamp(1rem, 1.8vw, 2.2rem); }
+.node-caption { font-size: clamp(.9rem, 1.4vw, 1.6rem); }
+.room-caption { font-size: clamp(1rem, 1.6vw, 1.8rem); }
+.caption-fixed { opacity: 1; transform: translateY(0); }
+.caption-hover { opacity: 0; transform: translateY(10px); transition: opacity .25s ease, transform .25s ease; }
+.course-card:hover .caption-hover,
+.room-anchor:hover .caption-hover,
+.node-card:hover .caption-hover { opacity: 1; transform: translateY(0); }
+.node-list { position: absolute; right: 8%; bottom: 38px; left: 8%; z-index: 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.node-card { position: relative; min-height: 208px; padding: 18px 18px 24px; overflow: hidden; border: 1px solid rgba(231,215,180,.22); background: rgba(21, 28, 30, .85); text-align: left; box-shadow: 0 12px 28px rgba(0,0,0,.2); transition: transform .22s ease, background .22s ease, border-color .22s ease; }
 .node-card:hover, .node-card:focus-visible { transform: translateY(-4px); border-color: var(--gold); background: rgba(40, 47, 46, .96); }
-.node-image { position: absolute; top: 0; right: 0; bottom: 0; width: 78px; height: 100%; object-fit: cover; opacity: .7; }
+.node-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .7; }
 .node-card.image-pending::after, .node-card.image-failed::after { position: absolute; right: 17px; bottom: 17px; color: var(--gold); content: "待生成"; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
 .node-card.image-failed::after { color: #d78271; content: "加载失败"; }
 .image-error-label { position: absolute; top: 50%; left: 50%; z-index: 2; transform: translate(-50%, -50%); color: #d78271; font-size: 10px; white-space: nowrap; }
@@ -169,7 +190,6 @@ h1, h2 { font-family: "Cormorant Garamond", serif; font-weight: 600; line-height
 .detail-meta { display: grid; gap: 13px; margin: 0; }
 .detail-meta div { display: flex; justify-content: space-between; gap: 20px; font-size: 12px; }
 .detail-meta dt { color: var(--quiet); } .detail-meta dd { margin: 0; color: var(--gold-bright); text-align: right; }
-.detail-prompt { margin-top: 28px; color: var(--quiet); font-size: 11px; line-height: 1.7; }
 .drawer-backdrop { position: fixed; inset: 0; z-index: 9; background: rgba(0,0,0,.55); backdrop-filter: blur(3px); }
 
 :focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 3px; }
@@ -193,8 +213,7 @@ h1, h2 { font-family: "Cormorant Garamond", serif; font-weight: 600; line-height
   .room-stage { min-height: 620px; }
   .room-anchor { top: 28%; width: 110px; height: 110px; }
   .node-list { right: 16px; bottom: 16px; left: 16px; grid-template-columns: 1fr; }
-  .node-card { min-height: 106px; }
-  .node-card { padding-right: 92px; }
+  .node-card { min-height: 170px; }
   .node-title { margin: 5px 0; }
   .node-preview { max-width: calc(100% - 20px); }
   .detail-drawer { width: 100%; padding-right: 28px; padding-left: 28px; }
