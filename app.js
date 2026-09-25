@@ -144,8 +144,7 @@ function parseNodes(csvText) {
 }
 
 function shortTitle(node) {
-  if (node.id === "1") return "英语 · 英国古堡";
-  const source = node.knowledgeText || `记忆节点 ${node.id}`;
+  const source = node.knowledgeText || node.prompt || `记忆节点 ${node.id}`;
   return source.length > 34 ? `${source.slice(0, 34)}…` : source;
 }
 
@@ -218,7 +217,7 @@ function renderHall() {
 function renderRoom(node) {
   setView("room");
   state.currentId = node.id;
-  const childNodes = state.children.get(node.id) || [];
+  const childNodes = (state.children.get(node.id) || []).filter((child) => child.parentId === node.id && child.level === node.level + 1);
   elements.roomTitle.textContent = shortTitle(node);
   elements.roomCaption.textContent = "探索房间里的每一个记忆锚点";
   elements.roomAnchor.setAttribute("aria-label", node.imageState === "pending" ? "当前场景图片待生成" : "当前场景图片已就绪");
