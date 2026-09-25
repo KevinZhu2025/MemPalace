@@ -1,0 +1,5 @@
+.env
+gallery/*.png
+image-generation.log
+知识点文档.csv.bak
+__pycache__/

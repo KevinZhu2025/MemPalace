@@ -1,0 +1,30 @@
+{
+  "name": "mem-palace-spfx",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=16.13.0 <19.0.0"
+  },
+  "scripts": {
+    "build": "gulp build",
+    "bundle": "gulp bundle",
+    "bundle:ship": "gulp bundle --ship",
+    "package:ship": "gulp package-solution --ship",
+    "serve": "gulp serve",
+    "trust-dev-cert": "gulp trust-dev-cert"
+  },
+  "dependencies": {
+    "@microsoft/sp-core-library": "1.18.2",
+    "@microsoft/sp-lodash-subset": "1.18.2",
+    "@microsoft/sp-property-pane": "1.18.2",
+    "@microsoft/sp-webpart-base": "1.18.2",
+    "tslib": "2.3.1"
+  },
+  "devDependencies": {
+    "@microsoft/rush-stack-compiler-4.7": "0.1.1",
+    "@microsoft/sp-build-web": "1.18.2",
+    "@types/webpack-env": "1.18.4",
+    "gulp": "4.0.2",
+    "typescript": "4.7.4"
+  }
+}

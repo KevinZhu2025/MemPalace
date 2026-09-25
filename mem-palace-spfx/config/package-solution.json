@@ -1,0 +1,13 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "mem-palace-spfx-client-side-solution",
+    "id": "4d18c829-7f48-4f26-bf91-a495fdf76f2b",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true
+  },
+  "paths": {
+    "zippedPackage": "solution/mem-palace-spfx.sppkg"
+  }
+}
