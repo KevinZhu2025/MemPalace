@@ -16,7 +16,8 @@ function makeElement() {
     innerHTML: '',
     className: '',
     style: {},
-    value: ''
+    value: '',
+    removeAttribute() {}
   };
 }
 
@@ -29,8 +30,9 @@ const documentStub = {
       'room-caption', 'room-anchor', 'node-list', 'empty-room', 'breadcrumb',
       'back-button', 'detail-drawer', 'drawer-backdrop', 'close-detail',
       'detail-title', 'detail-text', 'detail-id', 'detail-image-status',
-      'detail-prompt'
+      'detail-prompt', 'image-lightbox', 'lightbox-image', 'close-lightbox'
     ];
+    if (selector === '.brand') return makeElement();
     const key = selector.startsWith('#') ? selector.slice(1) : selector;
     return ids.includes(key) ? makeElement() : null;
   },
@@ -65,5 +67,5 @@ test('CSV parser accepts display mode and keeps prompt text internal', () => {
   assert.equal(parsed.nodes.get('1').displayMode, '固定');
   assert.equal(parsed.nodes.get('1.1').displayMode, '悬浮');
   assert.equal(parsed.nodes.get('1').prompt, '英国古堡大门');
-  assert.deepEqual(parsed.roots.map((node) => node.id), ['1']);
+  assert.equal(parsed.roots.map((node) => node.id).join(','), '1');
 });

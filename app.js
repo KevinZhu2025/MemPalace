@@ -33,7 +33,10 @@ const elements = {
   detailTitle: document.querySelector("#detail-title"),
   detailText: document.querySelector("#detail-text"),
   detailId: document.querySelector("#detail-id"),
-  detailImageStatus: document.querySelector("#detail-image-status")
+  detailImageStatus: document.querySelector("#detail-image-status"),
+  imageLightbox: document.querySelector("#image-lightbox"),
+  lightboxImage: document.querySelector("#lightbox-image"),
+  closeLightbox: document.querySelector("#close-lightbox")
 };
 
 function parseCsv(text) {
@@ -157,7 +160,7 @@ function getCaptionMode(node) {
   return /(悬浮|hover|float)/i.test(node.displayMode || "") ? "hover" : "fixed";
 }
 
-function addNodeImage(container, node, className, captionClass = "image-caption") {
+function addNodeImage(container, node, className) {
   if (!node.imageUrl) {
     container.classList.add("image-pending");
     return;
@@ -167,6 +170,9 @@ function addNodeImage(container, node, className, captionClass = "image-caption"
   image.src = node.imageUrl;
   image.alt = node.prompt || `记忆节点 ${node.id}`;
   image.loading = "lazy";
+  image.tabIndex = 0;
+  image.setAttribute("role", "button");
+  image.setAttribute("aria-label", `放大查看${image.alt}`);
   image.addEventListener("error", () => {
     node.imageState = "failed";
     container.classList.add("image-failed");
@@ -176,14 +182,18 @@ function addNodeImage(container, node, className, captionClass = "image-caption"
     status.textContent = "图片加载失败";
     container.append(status);
   });
+  image.addEventListener("click", (event) => {
+    event.stopPropagation();
+    openImageLightbox(node);
+  });
+  image.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      event.stopPropagation();
+      openImageLightbox(node);
+    }
+  });
   container.append(image);
-
-  if (node.knowledgeText) {
-    const caption = document.createElement("span");
-    caption.className = `${captionClass} caption-${getCaptionMode(node)}`;
-    caption.textContent = node.knowledgeText;
-    container.append(caption);
-  }
 }
 
 function setView(view) {
@@ -220,9 +230,11 @@ function renderRoom(node) {
   const childNodes = (state.children.get(node.id) || []).filter((child) => child.parentId === node.id && child.level === node.level + 1);
   elements.roomTitle.textContent = shortTitle(node);
   elements.roomCaption.textContent = "探索房间里的每一个记忆锚点";
+  const hideRoomAnchor = node.id === "1" || node.id === "2";
+  elements.roomAnchor.classList.toggle("is-hidden", hideRoomAnchor);
   elements.roomAnchor.setAttribute("aria-label", node.imageState === "pending" ? "当前场景图片待生成" : "当前场景图片已就绪");
   elements.roomAnchor.replaceChildren();
-  addNodeImage(elements.roomAnchor, node, "room-image", "room-caption");
+  if (!hideRoomAnchor) addNodeImage(elements.roomAnchor, node, "room-image");
   elements.nodeList.replaceChildren();
   elements.emptyRoom.classList.toggle("is-hidden", childNodes.length > 0);
 
@@ -234,7 +246,7 @@ function renderRoom(node) {
     card.setAttribute("aria-label", descendants ? `进入${shortTitle(child)}，有 ${descendants} 个子节点` : `查看${shortTitle(child)}知识点`);
     card.innerHTML = `<span class="node-index">${node.id}.${index + 1}</span><span class="node-state">${child.imageState === "pending" ? "待生成" : "已就绪"}</span><strong class="node-title">${escapeHtml(shortTitle(child))}</strong><span class="node-preview">${escapeHtml(shortPreview(child))}</span>`;
     addNodeImage(card, child, "node-image", "node-caption");
-    card.addEventListener("click", () => descendants ? navigate(child.id) : openDetail(child));
+    card.addEventListener("click", () => { if (child.imageUrl) openImageLightbox(child); });
     elements.nodeList.append(card);
   });
   renderBreadcrumbs(node);
@@ -271,6 +283,22 @@ function renderBreadcrumbs(node) {
       elements.breadcrumb.append(link);
     }
   });
+}
+
+function openImageLightbox(node) {
+  if (!node?.imageUrl) return;
+  elements.lightboxImage.src = node.imageUrl;
+  elements.lightboxImage.alt = node.prompt || `记忆节点 ${node.id}`;
+  elements.imageLightbox.classList.add("is-open");
+  elements.imageLightbox.setAttribute("aria-hidden", "false");
+  document.body.classList.add("lightbox-open");
+  elements.closeLightbox.focus();
+}
+function closeImageLightbox() {
+  elements.imageLightbox.classList.remove("is-open");
+  elements.imageLightbox.setAttribute("aria-hidden", "true");
+  elements.lightboxImage.removeAttribute("src");
+  document.body.classList.remove("lightbox-open");
 }
 
 function openDetail(node) {
@@ -349,8 +377,10 @@ elements.brand.addEventListener("click", (event) => {
 });
 elements.closeDetail.addEventListener("click", closeDetail);
 elements.backdrop.addEventListener("click", closeDetail);
+elements.closeLightbox.addEventListener("click", closeImageLightbox);
+elements.imageLightbox.addEventListener("click", (event) => { if (event.target === elements.imageLightbox) closeImageLightbox(); });
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") closeDetail();
+  if (event.key === "Escape") { closeDetail(); closeImageLightbox(); }
 });
 window.addEventListener("hashchange", syncRoute);
 loadData();

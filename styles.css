@@ -218,3 +218,13 @@ h1, h2 { font-family: "Cormorant Garamond", serif; font-weight: 600; line-height
   .node-preview { max-width: calc(100% - 20px); }
   .detail-drawer { width: 100%; padding-right: 28px; padding-left: 28px; }
 }
+
+
+.room-image, .node-image { cursor: zoom-in; }
+body.lightbox-open { overflow: hidden; }
+.image-lightbox { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 32px; background: rgba(5,8,10,.92); backdrop-filter: blur(8px); }
+.image-lightbox.is-open { display: flex; }
+.lightbox-image { display: block; max-width: min(94vw,1500px); max-height: 90vh; object-fit: contain; box-shadow: 0 28px 90px rgba(0,0,0,.58); }
+.lightbox-close { position: fixed; top: 20px; right: 24px; z-index: 101; width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.35); border-radius: 50%; color: #fff; background: rgba(0,0,0,.35); font-size: 30px; line-height: 1; }
+.lightbox-close:hover, .lightbox-close:focus-visible { border-color: var(--gold-bright); color: var(--gold-bright); }
+@media (max-width: 720px) { .image-lightbox { padding: 18px; } .lightbox-image { max-width: 96vw; max-height: 86vh; } }
