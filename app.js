@@ -36,6 +36,7 @@ const elements = {
   detailImageStatus: document.querySelector("#detail-image-status"),
   imageLightbox: document.querySelector("#image-lightbox"),
   lightboxImage: document.querySelector("#lightbox-image"),
+  lightboxCaption: document.querySelector("#lightbox-caption"),
   closeLightbox: document.querySelector("#close-lightbox")
 };
 
@@ -244,7 +245,7 @@ function renderRoom(node) {
     card.className = "node-card";
     const descendants = state.children.get(child.id)?.length || 0;
     card.setAttribute("aria-label", descendants ? `进入${shortTitle(child)}，有 ${descendants} 个子节点` : `查看${shortTitle(child)}知识点`);
-    card.innerHTML = `<span class="node-index">${node.id}.${index + 1}</span><span class="node-state">${child.imageState === "pending" ? "待生成" : "已就绪"}</span><strong class="node-title">${escapeHtml(shortTitle(child))}</strong><span class="node-preview">${escapeHtml(shortPreview(child))}</span>`;
+    card.innerHTML = `<span class="node-index">${node.id}.${index + 1}</span><span class="node-state">${child.imageState === "pending" ? "待生成" : "已就绪"}</span>`;
     addNodeImage(card, child, "node-image", "node-caption");
     card.addEventListener("click", () => { if (child.imageUrl) openImageLightbox(child); });
     elements.nodeList.append(card);
@@ -289,6 +290,8 @@ function openImageLightbox(node) {
   if (!node?.imageUrl) return;
   elements.lightboxImage.src = node.imageUrl;
   elements.lightboxImage.alt = node.prompt || `记忆节点 ${node.id}`;
+  elements.lightboxCaption.textContent = node.knowledgeText || "";
+  elements.lightboxCaption.classList.toggle("is-hidden", !node.knowledgeText);
   elements.imageLightbox.classList.add("is-open");
   elements.imageLightbox.setAttribute("aria-hidden", "false");
   document.body.classList.add("lightbox-open");
@@ -298,6 +301,8 @@ function closeImageLightbox() {
   elements.imageLightbox.classList.remove("is-open");
   elements.imageLightbox.setAttribute("aria-hidden", "true");
   elements.lightboxImage.removeAttribute("src");
+  elements.lightboxCaption.textContent = "";
+  elements.lightboxCaption.classList.add("is-hidden");
   document.body.classList.remove("lightbox-open");
 }
 

@@ -30,7 +30,7 @@ const documentStub = {
       'room-caption', 'room-anchor', 'node-list', 'empty-room', 'breadcrumb',
       'back-button', 'detail-drawer', 'drawer-backdrop', 'close-detail',
       'detail-title', 'detail-text', 'detail-id', 'detail-image-status',
-      'detail-prompt', 'image-lightbox', 'lightbox-image', 'close-lightbox'
+      'detail-prompt', 'image-lightbox', 'lightbox-image', 'lightbox-caption', 'close-lightbox'
     ];
     if (selector === '.brand') return makeElement();
     const key = selector.startsWith('#') ? selector.slice(1) : selector;
