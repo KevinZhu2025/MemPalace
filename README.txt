@@ -121,19 +121,22 @@ Web App 的“环境变量/应用设置”。
 
 ## Azure SQL 图片迁移
 
-首次部署包含 SQL 图片功能的版本时，Web App 会检测 `图片数据` 列是否存在。若不存在，
-应用会在启动期间自动新增 `图片数据 VARBINARY(MAX)` 与 `图片MIME类型`，删除原图不可恢复的
-测试记录 `1.7`、`1.8`，并将仓库现有的 `gallery/*.png` 导入 Azure SQL。该迁移只运行一次；
-后续重启和 GitHub Actions 部署不会重新导入。
+首次切换前，先在 Azure SQL Query Editor 中运行：
 
-也可在具备 Web App 托管身份和 Key Vault 访问权限的运行环境手动执行：
-
-```bash
-python scripts/import_gallery_to_sql.py --apply-schema
+```sql
+scripts/migrate_images_to_sql.sql
 ```
 
-迁移成功后，既有图片路径会更新为 `/api/images/<图片编号>`。确认线上图片均可加载后，
-才可从仓库移除旧的 PNG 文件。
+该脚本会新增 `图片数据 VARBINARY(MAX)` 与 `图片MIME类型 NVARCHAR(100)`，并删除原图
+不可恢复的测试记录 `1.7`、`1.8`。随后在具备 Web App 托管身份和 Key Vault 访问权限的
+运行环境执行：
+
+```bash
+python scripts/import_gallery_to_sql.py
+```
+
+导入脚本会把仓库中现有的 `gallery/*.png` 写入 Azure SQL，并将既有图片路径更新为
+`/api/images/<图片编号>`。只有迁移和导入都成功后，才可从仓库移除旧的 PNG 文件。
 
 # 图片生成
 

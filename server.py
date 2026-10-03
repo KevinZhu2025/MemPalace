@@ -13,7 +13,6 @@ from urllib.parse import urlparse
 from urllib.error import HTTPError
 from urllib.error import URLError
 import urllib.request
-from image_storage_migration import import_gallery
 
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -123,12 +122,8 @@ def connect_to_sql(pyodbc, connection_string):
 
 def read_knowledge_records():
     query = """
-        SELECT [图像提示词],
-               CASE
-                   WHEN [图片数据] IS NULL THEN N''
-                   ELSE CONCAT(N'/api/images/', [图片编号])
-               END AS [图片位置],
-               [图片层级], [图片编号], [上层图片], [知识点], [显示方式]
+        SELECT [图像提示词], [图片位置], [图片层级], [图片编号],
+               [上层图片], [知识点], [显示方式]
         FROM [dbo].[Knowledge_doc]
         ORDER BY [图片层级], [图片编号]
     """
@@ -139,32 +134,6 @@ def read_knowledge_records():
             {field: (value if value is not None else "") for field, value in zip(FIELDS, row)}
             for row in cursor.fetchall()
         ]
-
-
-def get_image_record(image_id):
-    query = """
-        SELECT [图片数据], [图片MIME类型]
-        FROM [dbo].[Knowledge_doc]
-        WHERE [图片编号] = ?
-    """
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        cursor.execute(query, image_id)
-        row = cursor.fetchone()
-    if row is None or row[0] is None:
-        return None
-    image_bytes = bytes(row[0])
-    mime_type = str(row[1] or "image/png")
-    return image_bytes, mime_type
-
-
-def image_schema_is_available():
-    with get_connection() as connection:
-        cursor = connection.cursor()
-        cursor.execute(
-            "SELECT COL_LENGTH(N'dbo.Knowledge_doc', N'图片数据')"
-        )
-        return cursor.fetchone()[0] is not None
 
 
 def request_json(url, api_key, method="GET", payload=None, timeout_environment_name=None):
@@ -381,16 +350,17 @@ def next_image_id(cursor, parent_id):
     return f"{parent_id}.{max(suffixes, default=0) + 1}"
 
 
-def normalize_png(image_bytes):
+def save_png(image_bytes, image_id):
     try:
         from PIL import Image
         from io import BytesIO
     except ImportError as error:
-        raise RuntimeError("处理图片需要 Pillow，请先安装 requirements.txt 中的依赖。") from error
+        raise RuntimeError("保存图片需要 Pillow，请先安装 requirements.txt 中的依赖。") from error
+    GALLERY.mkdir(parents=True, exist_ok=True)
+    target = GALLERY / f"{image_id}.png"
     with Image.open(BytesIO(image_bytes)) as image:
-        output = BytesIO()
-        image.convert("RGBA").save(output, format="PNG")
-    return output.getvalue()
+        image.convert("RGBA").save(target, format="PNG")
+    return f"gallery/{image_id}.png"
 
 
 def create_knowledge_record(text, image_bytes=None):
@@ -409,16 +379,14 @@ def create_knowledge_record(text, image_bytes=None):
     with get_connection() as connection:
         cursor = connection.cursor()
         image_id = next_image_id(cursor, parent_id)
-        image_path = f"/api/images/{image_id}"
-        png_image = normalize_png(generated_image)
+        image_path = save_png(generated_image, image_id)
         cursor.execute(
             """
             INSERT INTO [dbo].[Knowledge_doc]
-                ([图像提示词], [图片位置], [图片数据], [图片MIME类型],
-                 [图片层级], [图片编号], [上层图片], [知识点], [显示方式])
-            VALUES (?, ?, ?, N'image/png', 2, ?, ?, ?, N'悬浮')
+                ([图像提示词], [图片位置], [图片层级], [图片编号], [上层图片], [知识点], [显示方式])
+            VALUES (?, ?, 2, ?, ?, ?, N'悬浮')
             """,
-            prompt, image_path, png_image, image_id, parent_id, text.strip(),
+            prompt, image_path, image_id, parent_id, text.strip(),
         )
         connection.commit()
     return {"id": image_id, "prompt": prompt, "imageUrl": image_path}
@@ -460,22 +428,6 @@ class MemPalaceHandler(SimpleHTTPRequestHandler):
             else:
                 self.send_json(200, job)
             return
-        if path.startswith("/api/images/"):
-            image_id = path.removeprefix("/api/images/")
-            if not re.fullmatch(r"\d+(?:\.\d+)*", image_id):
-                self.send_json(404, {"error": "图片不存在。"})
-                return
-            try:
-                image_record = get_image_record(image_id)
-            except Exception as error:
-                self.send_json(503, {"error": f"读取图片失败：{error}"})
-                return
-            if image_record is None:
-                self.send_json(404, {"error": "图片不存在。"})
-                return
-            image_bytes, mime_type = image_record
-            self.send_bytes(200, image_bytes, mime_type)
-            return
         if path == "/api/knowledge":
             try:
                 self.send_json(200, read_knowledge_records())
@@ -515,20 +467,9 @@ class MemPalaceHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def send_bytes(self, status, body, content_type):
-        self.send_response(status)
-        self.send_header("Content-Type", content_type)
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "public, max-age=86400")
-        self.end_headers()
-        self.wfile.write(body)
-
 
 if __name__ == "__main__":
     load_dotenv()
-    if not image_schema_is_available():
-        imported_image_count = import_gallery(get_connection, GALLERY, apply_schema=True)
-        print(f"已将 {imported_image_count} 个图库图片迁入 Azure SQL。", flush=True)
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "4173"))
     os.chdir(ROOT)
