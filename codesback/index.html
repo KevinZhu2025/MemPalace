@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="codesback/styles.css">
 </head>
 <body>
   <div class="app-shell">
@@ -40,32 +40,11 @@
       </section>
 
       <section id="hall-view" class="view is-hidden" aria-labelledby="hall-title">
-        <div class="hero-copy hero-copy-compact">
+        <div class="hero-copy">
           <p class="eyebrow"><span class="eyebrow-line"></span> YOUR MEMORY PALACE</p>
-          <h1 id="hall-title">走进你的 <em>知识宫殿</em></h1>
+          <h1 id="hall-title">走进你的<br><em>知识宫殿</em></h1>
+          <p class="hero-description">把抽象的知识放进一座可以漫游的城堡。每一扇门，都是一个值得记住的连接。</p>
         </div>
-        <section class="knowledge-composer" aria-labelledby="composer-title">
-          <div class="composer-heading">
-            <div>
-              <span class="section-kicker">CREATE A MEMORY ANCHOR</span>
-              <h2 id="composer-title">知识输入</h2>
-            </div>
-            <span id="composer-status" class="composer-status" role="status">准备接收新的知识点</span>
-          </div>
-          <form id="knowledge-form" class="knowledge-form">
-            <label class="sr-only" for="knowledge-input">知识点内容</label>
-            <textarea id="knowledge-input" name="knowledge" rows="3" placeholder="Subject:English&#10;Code: ...  Decode: ...  English sentences: ..." required></textarea>
-            <div class="composer-actions">
-              <label class="upload-button" for="knowledge-image" title="上传知识图片">
-                <span class="upload-icon" aria-hidden="true">↑</span>
-                <span>上传知识图片</span>
-              </label>
-              <input id="knowledge-image" name="image" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only">
-              <span id="upload-name" class="upload-name">未选择图片</span>
-              <button class="button button-primary" type="submit">生成记忆锚点 <span aria-hidden="true">↗</span></button>
-            </div>
-          </form>
-        </section>
         <div class="hall-intro">
           <div>
             <span class="section-kicker">COURSE ARCHIVE</span>
@@ -117,14 +96,7 @@
       </dl>
     </aside>
     <div id="drawer-backdrop" class="drawer-backdrop is-hidden"></div>
-    <div id="image-lightbox" class="image-lightbox" role="dialog" aria-modal="true" aria-label="图片预览" aria-hidden="true">
-      <button id="close-lightbox" class="lightbox-close" type="button" aria-label="关闭图片预览">×</button>
-      <div class="lightbox-content">
-        <img id="lightbox-image" class="lightbox-image" alt="">
-        <p id="lightbox-caption" class="lightbox-caption is-hidden"></p>
-      </div>
-    </div>
   </div>
-  <script src="app.js" defer></script>
+  <script src="codesback/app.js" defer></script>
 </body>
 </html>

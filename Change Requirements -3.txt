@@ -1,0 +1,8 @@
+#对话框输入的场景和规则如下。
+##用户输入知识点文本内容并同时上传图片，那就表示用户已经准备好了知识和记忆锚点图片，程序完成如下动作。
+1. 对于“英文”学科，输入文本的格式为：
+Subject:English 
+English sentences :Due to oversight of his tendency toward infidelity, intimate relationship with adolescents inevitably seduces him to commit adultery.
+2. 在数据库表里为上传的图片进行登记
+
+. 对于“英文”学科，输入文本的格式为：
