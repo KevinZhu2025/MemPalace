@@ -115,8 +115,28 @@ Web App 的“环境变量/应用设置”。
 3. 打开首页，顶部数据源应显示“Azure SQL 知识库”而不是“本地 CSV 备用数据源”。
 4. 提交一个测试知识点，确认文本模型、图片模型、图片保存和数据库写入均成功。
 
-注意：当前生成图片写入 Web App 本地 `gallery` 目录。重新部署可能覆盖这些文件；
-正式生产环境应将生成图片迁移到 Azure Blob Storage。
+图片数据保存在 Azure SQL 的 `Knowledge_doc.[图片数据]` 列，网页通过
+`/api/images/<图片编号>` 读取 PNG。GitHub Actions 重新部署不会删除已生成图片。
+`图片位置` 保存对应 API 地址，不再依赖 Web App 本地 `gallery` 目录。
+
+## Azure SQL 图片迁移
+
+首次切换前，先在 Azure SQL Query Editor 中运行：
+
+```sql
+scripts/migrate_images_to_sql.sql
+```
+
+该脚本会新增 `图片数据 VARBINARY(MAX)` 与 `图片MIME类型 NVARCHAR(100)`，并删除原图
+不可恢复的测试记录 `1.7`、`1.8`。随后在具备 Web App 托管身份和 Key Vault 访问权限的
+运行环境执行：
+
+```bash
+python scripts/import_gallery_to_sql.py
+```
+
+导入脚本会把仓库中现有的 `gallery/*.png` 写入 Azure SQL，并将既有图片路径更新为
+`/api/images/<图片编号>`。只有迁移和导入都成功后，才可从仓库移除旧的 PNG 文件。
 
 # 图片生成
 
@@ -146,4 +166,6 @@ $env:DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com"
 & "D:\Minforge3\python.exe" scripts\generate_images.py
 ```
 
-生成成功的文件会保存为 `gallery/图片编号.png`，CSV 的“图片位置”列会写入对应相对路径。失败项目保持空白并记录到 `image-generation.log`，下一次运行可以重试。CSV 原文件会先备份为 `知识点文档.csv.bak`。
+批量补图脚本仍会在本地生成 `gallery/图片编号.png` 供审核；要使其在线展示，需再运行
+`scripts/import_gallery_to_sql.py` 导入 Azure SQL。失败项目保持空白并记录到
+`image-generation.log`，下一次运行可以重试。CSV 原文件会先备份为 `知识点文档.csv.bak`。
