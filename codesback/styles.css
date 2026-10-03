@@ -77,29 +77,14 @@ main { width: min(100% - 72px, 1440px); min-height: calc(100vh - 87px); margin: 
 .is-hidden { display: none !important; }
 
 .hero-copy { max-width: 760px; padding: 58px 0 75px 8%; }
-.hero-copy-compact { padding-top: 22px; padding-bottom: 26px; }
 .eyebrow, .section-kicker, .stage-label { color: var(--gold); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; }
 .eyebrow { display: flex; align-items: center; gap: 11px; margin: 0 0 18px; }
 .eyebrow-line { display: inline-block; width: 28px; height: 1px; background: var(--gold); }
 h1, h2, p { margin-top: 0; }
 h1, h2 { font-family: "Cormorant Garamond", serif; font-weight: 600; line-height: .95; }
-.hero-copy h1 { max-width: 640px; margin-bottom: 0; font-size: 20px; letter-spacing: 0; }
+.hero-copy h1 { max-width: 640px; margin-bottom: 26px; font-size: clamp(58px, 8vw, 110px); letter-spacing: -.02em; }
 .hero-copy h1 em { color: var(--gold-bright); font-style: normal; }
 .hero-description { max-width: 390px; margin: 0; color: var(--muted); font-size: 15px; }
-
-.knowledge-composer { width: min(100%, 640px); margin: 0 auto 62px; padding: 22px 24px 20px; border: 1px solid var(--line); background: rgba(24, 31, 34, .86); box-shadow: var(--shadow); }
-.composer-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 16px; }
-.composer-heading h2 { margin: 7px 0 0; font-size: 29px; }
-.composer-status { color: var(--quiet); font-size: 12px; }
-.composer-status.is-error { color: #d78271; }
-.knowledge-form textarea { display: block; width: 100%; min-height: 113px; resize: vertical; padding: 16px; border: 1px solid rgba(231,215,180,.23); color: var(--ink); background: rgba(8, 12, 14, .55); font: inherit; font-size: 16px; }
-.knowledge-form textarea::placeholder { color: #888b84; }
-.knowledge-form textarea:focus { border-color: var(--gold); outline: 2px solid rgba(241,198,121,.22); outline-offset: 2px; }
-.composer-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 14px; }
-.upload-button { display: inline-flex; align-items: center; gap: 7px; color: var(--gold-bright); font-size: 12px; cursor: pointer; }
-.upload-icon { display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid var(--gold); font-size: 18px; }
-.upload-name { max-width: 170px; overflow: hidden; color: var(--quiet); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 .hall-intro { display: flex; align-items: end; justify-content: space-between; border-top: 1px solid var(--line); padding: 28px 0 20px; }
 .hall-intro h2 { margin: 8px 0 0; font-size: 35px; }
@@ -217,14 +202,9 @@ h1, h2 { font-family: "Cormorant Garamond", serif; font-weight: 600; line-height
   .topbar { padding-top: 20px; }
   .topbar-meta { font-size: 9px; }
   main { padding-top: 15px; }
-  .hero-copy { padding: 30px 0 24px; }
+  .hero-copy { padding: 55px 0 62px; }
   .hero-copy h1 { font-size: clamp(55px, 17vw, 82px); }
-  .hero-copy-compact h1 { font-size: 20px; }
   .hero-description { font-size: 14px; }
-  .knowledge-composer { margin-bottom: 42px; padding: 18px 16px 16px; }
-  .composer-heading { align-items: start; flex-direction: column; gap: 5px; }
-  .composer-actions { align-items: flex-end; flex-wrap: wrap; justify-content: space-between; }
-  .upload-name { order: 3; width: 100%; max-width: none; }
   .hall-intro { align-items: start; gap: 15px; flex-direction: column; }
   .course-grid { grid-template-columns: 1fr; }
   .course-card { min-height: 265px; }
@@ -238,18 +218,3 @@ h1, h2 { font-family: "Cormorant Garamond", serif; font-weight: 600; line-height
   .node-preview { max-width: calc(100% - 20px); }
   .detail-drawer { width: 100%; padding-right: 28px; padding-left: 28px; }
 }
-
-
-.room-image, .node-image { cursor: zoom-in; }
-body.lightbox-open { overflow: hidden; }
-.image-lightbox { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 32px; background: rgba(5,8,10,.92); backdrop-filter: blur(8px); }
-.image-lightbox.is-open { display: flex; }
-.lightbox-content { position: relative; display: inline-flex; max-width: 94vw; max-height: 90vh; }
-.lightbox-image { display: block; max-width: min(94vw,1500px); max-height: 90vh; object-fit: contain; box-shadow: 0 28px 90px rgba(0,0,0,.58); }
-.lightbox-caption { position: absolute; right: 0; bottom: 0; left: 0; margin: 0; padding: 56px 28px 24px; color: #fff; background: linear-gradient(to bottom, transparent, rgba(0,0,0,.82)); font-size: clamp(1rem,2vw,1.6rem); font-weight: 600; line-height: 1.45; text-align: center; text-shadow: 0 2px 10px rgba(0,0,0,.9); overflow-wrap: anywhere; pointer-events: none; }
-.lightbox-close { position: fixed; top: 20px; right: 24px; z-index: 101; width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.35); border-radius: 50%; color: #fff; background: rgba(0,0,0,.35); font-size: 30px; line-height: 1; }
-.lightbox-close:hover, .lightbox-close:focus-visible { border-color: var(--gold-bright); color: var(--gold-bright); }
-@media (max-width: 720px) { .image-lightbox { padding: 18px; } .lightbox-content { max-width: 96vw; max-height: 86vh; } .lightbox-image { max-width: 96vw; max-height: 86vh; } .lightbox-caption { padding: 42px 16px 16px; font-size: 1rem; } }
-
-/* Knowledge-point text is displayed only in the enlarged preview. */
-.node-card .node-title, .node-card .node-preview, .node-card .image-caption { display: none !important; }

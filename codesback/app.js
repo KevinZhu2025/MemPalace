@@ -1,8 +1,5 @@
 const DATA_URL = "知识点文档.csv";
 const FIELD_NAMES = ["图像提示词", "图片位置", "图片层级", "图片编号", "上层图片", "知识点", "显示方式"];
-const API_BASE_URL = window.MEMPALACE_API_BASE_URL || "/api";
-const GENERATION_POLL_INTERVAL_MS = 3000;
-const GENERATION_POLL_TIMEOUT_MS = 15 * 60 * 1000;
 
 const state = {
   nodes: new Map(),
@@ -36,16 +33,7 @@ const elements = {
   detailTitle: document.querySelector("#detail-title"),
   detailText: document.querySelector("#detail-text"),
   detailId: document.querySelector("#detail-id"),
-  detailImageStatus: document.querySelector("#detail-image-status"),
-  imageLightbox: document.querySelector("#image-lightbox"),
-  lightboxImage: document.querySelector("#lightbox-image"),
-  lightboxCaption: document.querySelector("#lightbox-caption"),
-  closeLightbox: document.querySelector("#close-lightbox"),
-  knowledgeForm: document.querySelector("#knowledge-form"),
-  knowledgeInput: document.querySelector("#knowledge-input"),
-  knowledgeImage: document.querySelector("#knowledge-image"),
-  uploadName: document.querySelector("#upload-name"),
-  composerStatus: document.querySelector("#composer-status")
+  detailImageStatus: document.querySelector("#detail-image-status")
 };
 
 function parseCsv(text) {
@@ -155,17 +143,6 @@ function parseNodes(csvText) {
   return { nodes, children, roots: children.get(null) || [] };
 }
 
-function parseApiNodes(records) {
-  if (!Array.isArray(records) || records.length === 0) {
-    throw new Error("数据库中没有可展示的知识点记录。");
-  }
-  const escapeCsvValue = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
-  const csvText = [FIELD_NAMES, ...records.map((record) => FIELD_NAMES.map((field) => record[field] ?? ""))]
-    .map((row) => row.map(escapeCsvValue).join(","))
-    .join("\n");
-  return parseNodes(csvText);
-}
-
 function shortTitle(node) {
   const source = node.knowledgeText || node.prompt || `记忆节点 ${node.id}`;
   return source.length > 34 ? `${source.slice(0, 34)}…` : source;
@@ -176,68 +153,11 @@ function shortPreview(node) {
   return node.knowledgeText.length > 95 ? `${node.knowledgeText.slice(0, 95)}…` : node.knowledgeText;
 }
 
-function setComposerStatus(message, isError = false) {
-  if (!elements.composerStatus) return;
-  elements.composerStatus.textContent = message;
-  elements.composerStatus.classList.toggle("is-error", isError);
-}
-
-function wait(milliseconds) {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
-}
-
-async function waitForGeneration(jobId) {
-  const deadline = Date.now() + GENERATION_POLL_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    await wait(GENERATION_POLL_INTERVAL_MS);
-    const response = await fetch(`${API_BASE_URL}/generations/${encodeURIComponent(jobId)}`);
-    const job = await response.json();
-    if (!response.ok) throw new Error(job.error || `生成任务不可用（${response.status}）`);
-    if (job.status === "completed") return job.result;
-    if (job.status === "failed") throw new Error(job.error || "图片生成失败");
-  }
-  throw new Error("图片生成时间过长，请稍后刷新页面查看是否已保存。");
-}
-
-async function submitKnowledge(event) {
-  event.preventDefault();
-  const knowledge = elements.knowledgeInput?.value.trim();
-  const imageFile = elements.knowledgeImage?.files?.[0];
-  if (!knowledge) return;
-
-  const formData = new FormData();
-  formData.append("knowledge", knowledge);
-  if (imageFile) formData.append("image", imageFile);
-  setComposerStatus("正在登记知识点...");
-  try {
-    const response = await fetch(`${API_BASE_URL}/generate`, { method: "POST", body: formData });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || `服务暂不可用（${response.status}）`);
-    if (response.status === 202) {
-      setComposerStatus("正在生成图片，预计需要数分钟，请保持此页面打开...");
-      const completedResult = await waitForGeneration(result.jobId);
-      setComposerStatus("已保存到知识库，正在宫殿中展示");
-      elements.knowledgeForm.reset();
-      elements.uploadName.textContent = "未选择图片";
-      await loadData();
-      navigate(completedResult.id);
-      return;
-    }
-    setComposerStatus("已保存到知识库，正在宫殿中展示");
-    elements.knowledgeForm.reset();
-    elements.uploadName.textContent = "未选择图片";
-    await loadData();
-    navigate(result.id);
-  } catch (error) {
-    setComposerStatus(error.message || "保存失败，请稍后重试", true);
-  }
-}
-
 function getCaptionMode(node) {
   return /(悬浮|hover|float)/i.test(node.displayMode || "") ? "hover" : "fixed";
 }
 
-function addNodeImage(container, node, className) {
+function addNodeImage(container, node, className, captionClass = "image-caption") {
   if (!node.imageUrl) {
     container.classList.add("image-pending");
     return;
@@ -247,9 +167,6 @@ function addNodeImage(container, node, className) {
   image.src = node.imageUrl;
   image.alt = node.prompt || `记忆节点 ${node.id}`;
   image.loading = "lazy";
-  image.tabIndex = 0;
-  image.setAttribute("role", "button");
-  image.setAttribute("aria-label", `放大查看${image.alt}`);
   image.addEventListener("error", () => {
     node.imageState = "failed";
     container.classList.add("image-failed");
@@ -259,18 +176,14 @@ function addNodeImage(container, node, className) {
     status.textContent = "图片加载失败";
     container.append(status);
   });
-  image.addEventListener("click", (event) => {
-    event.stopPropagation();
-    openImageLightbox(node);
-  });
-  image.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      event.stopPropagation();
-      openImageLightbox(node);
-    }
-  });
   container.append(image);
+
+  if (node.knowledgeText) {
+    const caption = document.createElement("span");
+    caption.className = `${captionClass} caption-${getCaptionMode(node)}`;
+    caption.textContent = node.knowledgeText;
+    container.append(caption);
+  }
 }
 
 function setView(view) {
@@ -307,11 +220,9 @@ function renderRoom(node) {
   const childNodes = (state.children.get(node.id) || []).filter((child) => child.parentId === node.id && child.level === node.level + 1);
   elements.roomTitle.textContent = shortTitle(node);
   elements.roomCaption.textContent = "探索房间里的每一个记忆锚点";
-  const hideRoomAnchor = node.id === "1" || node.id === "2";
-  elements.roomAnchor.classList.toggle("is-hidden", hideRoomAnchor);
   elements.roomAnchor.setAttribute("aria-label", node.imageState === "pending" ? "当前场景图片待生成" : "当前场景图片已就绪");
   elements.roomAnchor.replaceChildren();
-  if (!hideRoomAnchor) addNodeImage(elements.roomAnchor, node, "room-image");
+  addNodeImage(elements.roomAnchor, node, "room-image", "room-caption");
   elements.nodeList.replaceChildren();
   elements.emptyRoom.classList.toggle("is-hidden", childNodes.length > 0);
 
@@ -321,9 +232,9 @@ function renderRoom(node) {
     card.className = "node-card";
     const descendants = state.children.get(child.id)?.length || 0;
     card.setAttribute("aria-label", descendants ? `进入${shortTitle(child)}，有 ${descendants} 个子节点` : `查看${shortTitle(child)}知识点`);
-    card.innerHTML = `<span class="node-index">${node.id}.${index + 1}</span><span class="node-state">${child.imageState === "pending" ? "待生成" : "已就绪"}</span>`;
+    card.innerHTML = `<span class="node-index">${node.id}.${index + 1}</span><span class="node-state">${child.imageState === "pending" ? "待生成" : "已就绪"}</span><strong class="node-title">${escapeHtml(shortTitle(child))}</strong><span class="node-preview">${escapeHtml(shortPreview(child))}</span>`;
     addNodeImage(card, child, "node-image", "node-caption");
-    card.addEventListener("click", () => { if (child.imageUrl) openImageLightbox(child); });
+    card.addEventListener("click", () => descendants ? navigate(child.id) : openDetail(child));
     elements.nodeList.append(card);
   });
   renderBreadcrumbs(node);
@@ -360,26 +271,6 @@ function renderBreadcrumbs(node) {
       elements.breadcrumb.append(link);
     }
   });
-}
-
-function openImageLightbox(node) {
-  if (!node?.imageUrl) return;
-  elements.lightboxImage.src = node.imageUrl;
-  elements.lightboxImage.alt = node.prompt || `记忆节点 ${node.id}`;
-  elements.lightboxCaption.textContent = node.knowledgeText || "";
-  elements.lightboxCaption.classList.toggle("is-hidden", !node.knowledgeText);
-  elements.imageLightbox.classList.add("is-open");
-  elements.imageLightbox.setAttribute("aria-hidden", "false");
-  document.body.classList.add("lightbox-open");
-  elements.closeLightbox.focus();
-}
-function closeImageLightbox() {
-  elements.imageLightbox.classList.remove("is-open");
-  elements.imageLightbox.setAttribute("aria-hidden", "true");
-  elements.lightboxImage.removeAttribute("src");
-  elements.lightboxCaption.textContent = "";
-  elements.lightboxCaption.classList.add("is-hidden");
-  document.body.classList.remove("lightbox-open");
 }
 
 function openDetail(node) {
@@ -435,24 +326,14 @@ function escapeHtml(value) {
 async function loadData() {
   setView("loading");
   try {
-    let parsed;
-    let sourceLabel = "Azure SQL 知识库";
-    try {
-      const databaseResponse = await fetch(`${API_BASE_URL}/knowledge`, { cache: "no-store" });
-      if (!databaseResponse.ok) throw new Error(`数据库接口返回 ${databaseResponse.status}`);
-      parsed = parseApiNodes(await databaseResponse.json());
-    } catch (databaseError) {
-      sourceLabel = "本地 CSV 备用数据源";
-      const csvResponse = await fetch(DATA_URL, { cache: "no-store" });
-      if (!csvResponse.ok) throw new Error(`数据库和 ${DATA_URL} 均无法读取。`);
-      parsed = parseNodes(await csvResponse.text());
-    }
+    const response = await fetch(DATA_URL, { cache: "no-store" });
+    if (!response.ok) throw new Error(`无法读取 ${DATA_URL}（${response.status}）。`);
+    const csvText = await response.text();
+    const parsed = parseNodes(csvText);
     if (parsed.roots.length === 0) throw new Error("CSV 中没有层级为 1 的课程入口。");
     state.nodes = parsed.nodes;
     state.children = parsed.children;
     state.roots = parsed.roots;
-    const syncStatus = document.querySelector("#sync-status");
-    if (syncStatus) syncStatus.textContent = sourceLabel;
     syncRoute();
   } catch (error) {
     elements.errorMessage.textContent = error.message || "请检查 CSV 文件格式后重试。";
@@ -468,16 +349,8 @@ elements.brand.addEventListener("click", (event) => {
 });
 elements.closeDetail.addEventListener("click", closeDetail);
 elements.backdrop.addEventListener("click", closeDetail);
-elements.closeLightbox.addEventListener("click", closeImageLightbox);
-elements.imageLightbox.addEventListener("click", (event) => { if (event.target === elements.imageLightbox) closeImageLightbox(); });
-elements.knowledgeForm?.addEventListener("submit", submitKnowledge);
-elements.knowledgeImage?.addEventListener("change", () => {
-  const file = elements.knowledgeImage.files?.[0];
-  elements.uploadName.textContent = file ? file.name : "未选择图片";
-  setComposerStatus(file ? "图片已就绪，可提交" : "准备接收新的知识点");
-});
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") { closeDetail(); closeImageLightbox(); }
+  if (event.key === "Escape") closeDetail();
 });
 window.addEventListener("hashchange", syncRoute);
 loadData();
