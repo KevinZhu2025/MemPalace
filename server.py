@@ -136,6 +136,30 @@ def read_knowledge_records():
         ]
 
 
+def read_image_record(image_id):
+    """根据图片编号返回数据库中的图片二进制与 MIME 类型。"""
+    query = """
+        SELECT [图片数据], [图片MIME类型]
+        FROM [dbo].[Knowledge_doc]
+        WHERE [图片编号] = ?
+    """
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        cursor.execute(query, str(image_id))
+        return cursor.fetchone()
+
+
+def image_url_for(image_id):
+    """前端使用的图片地址：统一走数据库图片端点。"""
+    return f"/api/images/{image_id}"
+
+
+def normalize_image_location(value, image_id):
+    """图片位置列：无论历史值是否为文件路径，统一转为数据库图片端点。"""
+    return image_url_for(image_id)
+
+
+
 def request_json(url, api_key, method="GET", payload=None, timeout_environment_name=None):
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8") if payload is not None else None
     request = urllib.request.Request(
@@ -350,17 +374,51 @@ def next_image_id(cursor, parent_id):
     return f"{parent_id}.{max(suffixes, default=0) + 1}"
 
 
-def save_png(image_bytes, image_id):
+def normalize_png(image_bytes):
     try:
         from PIL import Image
         from io import BytesIO
     except ImportError as error:
         raise RuntimeError("保存图片需要 Pillow，请先安装 requirements.txt 中的依赖。") from error
-    GALLERY.mkdir(parents=True, exist_ok=True)
-    target = GALLERY / f"{image_id}.png"
     with Image.open(BytesIO(image_bytes)) as image:
-        image.convert("RGBA").save(target, format="PNG")
-    return f"gallery/{image_id}.png"
+        buffer = BytesIO()
+        image.convert("RGBA").save(buffer, format="PNG")
+    return buffer.getvalue(), "image/png"
+
+
+def import_gallery_to_database():
+    """将 gallery/*.png 一次性导入数据库。供管理端点调用。"""
+    if not GALLERY.exists():
+        return {"updated": 0, "inserted": 0, "skipped": 0, "detail": "gallery 目录不存在。"}
+    updated = inserted = skipped = 0
+    detail = []
+    with get_connection() as connection:
+        cursor = connection.cursor()
+        for path in sorted(GALLERY.glob("*.png")):
+            image_id = path.stem
+            data, mime_type = normalize_png(path.read_bytes())
+            cursor.execute(
+                "SELECT 1 FROM [dbo].[Knowledge_doc] WHERE [图片编号] = ?",
+                image_id,
+            )
+            if cursor.fetchone() is None:
+                skipped += 1
+                detail.append(f"{image_id}: 数据库无记录，已跳过")
+                continue
+            cursor.execute(
+                """
+                UPDATE [dbo].[Knowledge_doc]
+                SET [图片数据] = ?, [图片MIME类型] = ?, [图片位置] = ?
+                WHERE [图片编号] = ?
+                """,
+                bytes(data), mime_type, image_url_for(image_id), image_id,
+            )
+            if cursor.rowcount:
+                updated += 1
+            else:
+                inserted += 1
+        connection.commit()
+    return {"updated": updated, "inserted": inserted, "skipped": skipped, "detail": detail}
 
 
 def create_knowledge_record(text, image_bytes=None):
@@ -376,17 +434,21 @@ def create_knowledge_record(text, image_bytes=None):
         prompt = ""
         generated_image = image_bytes
 
+    png_bytes, mime_type = normalize_png(generated_image)
+
     with get_connection() as connection:
         cursor = connection.cursor()
         image_id = next_image_id(cursor, parent_id)
-        image_path = save_png(generated_image, image_id)
+        image_path = image_url_for(image_id)
         cursor.execute(
             """
             INSERT INTO [dbo].[Knowledge_doc]
-                ([图像提示词], [图片位置], [图片层级], [图片编号], [上层图片], [知识点], [显示方式])
-            VALUES (?, ?, 2, ?, ?, ?, N'悬浮')
+                ([图像提示词], [图片位置], [图片层级], [图片编号], [上层图片],
+                 [知识点], [显示方式], [图片数据], [图片MIME类型])
+            VALUES (?, ?, 2, ?, ?, ?, N'悬浮', ?, ?)
             """,
             prompt, image_path, image_id, parent_id, text.strip(),
+            bytes(png_bytes), mime_type,
         )
         connection.commit()
     return {"id": image_id, "prompt": prompt, "imageUrl": image_path}
@@ -434,10 +496,38 @@ class MemPalaceHandler(SimpleHTTPRequestHandler):
             except Exception as error:
                 self.send_json(503, {"error": str(error)})
             return
+        if path.startswith("/api/images/"):
+            image_id = path.removeprefix("/api/images/")
+            if not re.fullmatch(r"[0-9]+(?:\.[0-9]+)*", image_id):
+                self.send_json(404, {"error": "图片不存在。"})
+                return
+            try:
+                record = read_image_record(image_id)
+            except Exception as error:
+                self.send_json(503, {"error": f"读取图片失败：{error}"})
+                return
+            if record is None or record[0] is None:
+                self.send_json(404, {"error": "图片尚未生成。"})
+                return
+            image_data, mime_type = record
+            self.send_image(200, bytes(image_data), mime_type or "image/png")
+            return
         super().do_GET()
 
+    def send_image(self, status, data, content_type):
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "private, max-age=3600")
+        self.end_headers()
+        self.wfile.write(data)
+
     def do_POST(self):
-        if urlparse(self.path).path != "/api/generate":
+        path = urlparse(self.path).path
+        if path == "/api/admin/import-gallery":
+            self.handle_admin_import()
+            return
+        if path != "/api/generate":
             self.send_json(404, {"error": "接口不存在。"})
             return
         try:
@@ -457,6 +547,23 @@ class MemPalaceHandler(SimpleHTTPRequestHandler):
             self.send_json(400, {"error": str(error)})
         except Exception as error:
             self.send_json(500, {"error": f"保存知识点失败：{error}"})
+
+    def handle_admin_import(self):
+        # 安全保护：必须携带与环境变量 IMPORT_TOKEN 一致的令牌。
+        # 未配置 IMPORT_TOKEN 时拒绝执行，避免端点裸露。
+        expected = os.getenv("IMPORT_TOKEN", "").strip()
+        provided = self.headers.get("X-Import-Token", "").strip()
+        if not expected:
+            self.send_json(503, {"error": "未启用导入端点（需配置 IMPORT_TOKEN）。"})
+            return
+        if provided != expected:
+            self.send_json(401, {"error": "令牌无效。"})
+            return
+        try:
+            result = import_gallery_to_database()
+            self.send_json(200, result)
+        except Exception as error:
+            self.send_json(500, {"error": f"导入失败：{error}"})
 
     def send_json(self, status, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")

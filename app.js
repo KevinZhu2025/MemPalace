@@ -4,6 +4,14 @@ const API_BASE_URL = window.MEMPALACE_API_BASE_URL || "/api";
 const GENERATION_POLL_INTERVAL_MS = 3000;
 const GENERATION_POLL_TIMEOUT_MS = 15 * 60 * 1000;
 
+// 图片统一由后端从数据库读取：/api/images/<图片编号>。
+// 兼容历史数据：gallery/xxx.png 或其它旧路径会被转换为数据库端点。
+function resolveImageUrl(id, rawLocation) {
+  if (!rawLocation) return "";
+  if (rawLocation.startsWith("/api/images/")) return rawLocation;
+  return `${API_BASE_URL}/images/${id}`;
+}
+
 const state = {
   nodes: new Map(),
   children: new Map(),
@@ -112,15 +120,16 @@ function parseNodes(csvText) {
     if (!id) errors.push(`第 ${line} 行缺少图片编号。`);
     if (!Number.isInteger(level) || level < 1) errors.push(`第 ${line} 行的图片层级无效。`);
     if (nodes.has(id)) errors.push(`第 ${line} 行的图片编号 ${id} 重复。`);
+    const rawLocation = normalize(row[indexOf("图片位置")] || "");
     nodes.set(id, {
       id,
       parentId,
       level,
       prompt: normalize(row[indexOf("图像提示词")] || ""),
-      imageUrl: normalize(row[indexOf("图片位置")] || ""),
+      imageUrl: resolveImageUrl(id, rawLocation),
       knowledgeText: normalize(row[indexOf("知识点")] || ""),
       displayMode,
-      imageState: normalize(row[indexOf("图片位置")] || "") ? "ready" : "pending"
+      imageState: rawLocation ? "ready" : "pending"
     });
   });
 

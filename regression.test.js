@@ -41,6 +41,7 @@ const documentStub = {
 
 const windowStub = {
   location: { hash: '' },
+  MEMPALACE_API_BASE_URL: '/api',
   addEventListener() {}
 };
 
@@ -68,4 +69,10 @@ test('CSV parser accepts display mode and keeps prompt text internal', () => {
   assert.equal(parsed.nodes.get('1.1').displayMode, '悬浮');
   assert.equal(parsed.nodes.get('1').prompt, '英国古堡大门');
   assert.equal(parsed.roots.map((node) => node.id).join(','), '1');
+});
+
+test('image URLs resolve to the database-backed endpoint', () => {
+  const parsed = context.parseNodes(csvText);
+  assert.equal(parsed.nodes.get('1').imageUrl, '/api/images/1');
+  assert.equal(parsed.nodes.get('1.1').imageUrl, '/api/images/1.1');
 });
