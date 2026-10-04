@@ -161,7 +161,31 @@ function parseNodes(csvText) {
   });
 
   if (errors.length > 0) throw new Error(errors.join(" "));
-  return { nodes, children, roots: children.get(null) || [] };
+
+  // 排序：同一上层图片下，按图片编号“数值段”升序（从左到右）。
+  // 例如 1.2 < 1.3 < ... < 1.10，避免按字符串把 1.10 排到 1.2 前面。
+  const compareImageIds = (a, b) => {
+    const pa = String(a).split(".");
+    const pb = String(b).split(".");
+    const length = Math.max(pa.length, pb.length);
+    for (let i = 0; i < length; i += 1) {
+      const sa = pa[i] ?? "";
+      const sb = pb[i] ?? "";
+      const na = Number(sa);
+      const nb = Number(sb);
+      if (sa !== "" && sb !== "" && Number.isInteger(na) && Number.isInteger(nb)) {
+        if (na !== nb) return na - nb;
+      } else {
+        const diff = sa.localeCompare(sb, "zh-Hans-CN", { numeric: true });
+        if (diff !== 0) return diff;
+      }
+    }
+    return String(a).localeCompare(String(b));
+  };
+
+  children.forEach((list) => list.sort((x, y) => compareImageIds(x.id, y.id)));
+  const roots = (children.get(null) || []).sort((x, y) => compareImageIds(x.id, y.id));
+  return { nodes, children, roots };
 }
 
 function parseApiNodes(records) {
